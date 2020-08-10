@@ -54,7 +54,7 @@ public class JsonResponceCreate : EditorWindow {
     /// </summary>
     private string originalPath = "Assets/Scripts";
 
-    [MenuItem ("JSON/ResponceScriptCreator")]
+    [MenuItem ("JSON/ParseScriptCreator")]
     public static void ShowWindow () {
         EditorWindow.GetWindow (typeof (JsonResponceCreate));
     }
