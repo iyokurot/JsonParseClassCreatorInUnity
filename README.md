@@ -1,0 +1,2 @@
+# JsonParseClassCreatorInUnity
+UnityでJsonをパースするクラスを自動生成するエディター拡張
