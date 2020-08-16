@@ -16,6 +16,11 @@ public class JsonResponceCreate : EditorWindow {
     private string className = default;
 
     /// <summary>
+    /// クラスの説明文
+    /// </summary>
+    private string classSummary = default;
+
+    /// <summary>
     /// メンバ変数のリスト
     /// </summary>
     /// <typeparam name="ObjectClass"></typeparam>
@@ -50,6 +55,11 @@ public class JsonResponceCreate : EditorWindow {
     private bool isChangePath = false;
 
     /// <summary>
+    /// コンストラクタを生成するか
+    /// </summary>
+    private bool isCreateConstractor = false;
+
+    /// <summary>
     /// 変更したパス
     /// </summary>
     private string originalPath = "Assets/Scripts";
@@ -69,6 +79,7 @@ public class JsonResponceCreate : EditorWindow {
         GUILayout.Label ("Json受け取りクラスの作成", EditorStyles.boldLabel);
         className = EditorGUILayout.TextField ("クラス名", className);
         EditorGUILayout.HelpBox ("先頭は必ず大文字に変換されます", MessageType.Info);
+        classSummary = EditorGUILayout.TextField ("クラスの説明", classSummary);
 
         GUILayout.Label ("メンバ変数", EditorStyles.boldLabel);
         EditorGUILayout.HelpBox ("summaryに変数の説明を明記\nTypeで型を指定\nNameで変数名を明記", MessageType.Info);
@@ -76,6 +87,7 @@ public class JsonResponceCreate : EditorWindow {
         EditorGUILayout.PropertyField (serializedObject.FindProperty ("memberList"), true);
         serializedObject.ApplyModifiedProperties ();
 
+        isCreateConstractor = GUILayout.Toggle (isCreateConstractor, "コンストラクタを生成");
         GUILayout.Label ("Assets/Scripts直下にcs作成", EditorStyles.boldLabel);
         isChangePath = GUILayout.Toggle (isChangePath, "生成先のパスを変更");
         if (isChangePath) {
@@ -93,6 +105,9 @@ public class JsonResponceCreate : EditorWindow {
     private void OnClickCreate () {
         // usingの記述
         string classStr = "using System.Collections;\nusing System.Collections.Generic;\nusing UnityEngine;\n\n";
+
+        // クラス説明文の記述
+        classStr += $"/// <summary>\n/// {classSummary}\n/// </summary>\n";
         classStr += "[System.Serializable]\n";
 
         // 空欄の除外
@@ -108,6 +123,11 @@ public class JsonResponceCreate : EditorWindow {
             " {\n";
         List<string> nameList = new List<string> ();
         List<string> propertyList = new List<string> ();
+
+        // コンストラクタ保管用str
+        string constractorStr = "public " + rewriteClassName + "(";
+        string constractorArgumentStr = string.Empty;
+        string constractorInnerStr = string.Empty;
 
         // メンバ変数の作成
         foreach (var obj in memberList) {
@@ -150,6 +170,16 @@ public class JsonResponceCreate : EditorWindow {
 
             // 対応するgetプロパティ
             classStr += $"public {obj.type} {upperMemberName} => {lowerMemberName};\n\n";
+
+            // コンストラクタの引数
+            if (constractorArgumentStr != string.Empty) {
+                constractorArgumentStr += ", ";
+            }
+            constractorArgumentStr += $"{obj.type} {lowerMemberName}";
+
+            // コンストラクタの内部
+            constractorInnerStr += $"this.{lowerMemberName} = {lowerMemberName};\n";
+
             nameList.Add (lowerMemberName);
             propertyList.Add (upperMemberName);
         }
@@ -160,6 +190,11 @@ public class JsonResponceCreate : EditorWindow {
         if (!CheckParams (propertyList)) {
             Debug.LogError ("プロパティ名が被っています");
             return;
+        }
+
+        // コンストラクタの生成
+        if (isCreateConstractor) {
+            classStr += constractorStr + constractorArgumentStr + "){\n" + constractorInnerStr + "}\n";
         }
         classStr += "}";
         Debug.Log (classStr);
@@ -182,8 +217,8 @@ public class JsonResponceCreate : EditorWindow {
 
         // クラスファイルの作成
         try {
-            using (FileStream fs = File.Create (path)){
-                Debug.Log($"生成パス：{fs.Name}");
+            using (FileStream fs = File.Create (path)) {
+                Debug.Log ($"生成パス：{fs.Name}");
             }
         } catch (Exception e) {
             Debug.LogError ("ファイルを作成できませんでした");
